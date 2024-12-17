@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 class PrioritizedReplayBuffer:
-    def __init__(self, buffer_size, batch_size, alpha=0.6):
+    def __init__(self, buffer_size, batch_size, alpha=0.2):
         """
         Initialize a Prioritized Replay Buffer.
 

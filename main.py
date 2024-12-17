@@ -2,6 +2,8 @@ import gym
 from src.algos.dqn import DQNAgent
 from src.buffers.replay_buffer import ReplayBuffer
 from src.buffers.prioritized_replay_buffer import PrioritizedReplayBuffer
+from src.buffers.HER_buffer import HERReplayBuffer
+from src.buffers.DHER_buffer import DHERReplayBuffer
 from src.trainer import train
 from src.utils import *
 import argparse
@@ -29,7 +31,10 @@ if __name__ == "__main__":
     
     buffers = {
         "ReplayBuffer": ReplayBuffer,
-        "PrioritizedReplayBuffer": PrioritizedReplayBuffer
+        "PrioritizedReplayBuffer": PrioritizedReplayBuffer,
+        "HERReplayBuffer": HERReplayBuffer,
+        "DHERReplayBuffer": DHERReplayBuffer
+
     }
     
     parser = get_parser()
@@ -48,14 +53,18 @@ if __name__ == "__main__":
     env.seed(args.seed)
     
     # Initialize buffer and agent
-    buffer = buffers[args.buffer](buffer_size=args.buffer_size, 
-                                  batch_size=args.batch_size)
-    agent = agents[args.agent](state_size=state_size, 
-                               action_size=action_size, 
-                               buffer=buffer, 
-                               gamma=0.99, 
-                               lr=0.001, 
-                               tau=0.001)
+    if args.buffer == "DHERReplayBuffer":
+        # Assuming DHERReplayBuffer does not immediately need an agent to be passed
+        buffer = DHERReplayBuffer(buffer_size=args.buffer_size, batch_size=args.batch_size,
+                                  get_q_value_func=lambda state, action: None,  # Placeholder, update later
+                                  gamma=0.99, alpha=0.6)
+        # Now initialize the agent with the newly created buffer
+        agent = DQNAgent(state_size, action_size, buffer, 0.99, 0.001, 0.001)
+        # Update the get_q_value_func with the correct function from agent
+        buffer.get_q_value_func = lambda state, action: agent.get_q_value(state, action)
+    else:
+        buffer = buffers[args.buffer](buffer_size=args.buffer_size, batch_size=args.batch_size)
+        agent = agents[args.agent](state_size, action_size, buffer, 0.99, 0.001, 0.001)
 
     # Train agent
     scores, training_loss = train(
